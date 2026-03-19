@@ -20,7 +20,14 @@ export async function handleBotAdded(ctx: Context) {
 
   await ctx.reply(
     '👋 Привет! Я помогу вашей группе делить счета.\n\n' +
-    '💸 Чтобы открыть Split Bill — нажмите кнопку меню рядом с полем ввода.',
+    '💸 Нажмите кнопку ниже чтобы открыть Split Bill:',
+    {
+      reply_markup: {
+        keyboard: [[{ text: '💸 Открыть Split Bill', web_app: { url: MINI_APP_URL } }]],
+        resize_keyboard: true,
+        one_time_keyboard: false,
+      },
+    },
   );
 }
 
