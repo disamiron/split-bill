@@ -84,7 +84,7 @@ export interface Database {
         Update: Partial<Omit<BillParticipantRow, 'id' | 'bill_id' | 'user_id'>>;
       };
     };
-    Views: Record<string, never>;
+    Views: { [_ in never]: never };
     Functions: {
       upsert_telegram_user: {
         Args: {
@@ -109,5 +109,7 @@ export interface Database {
         Returns: BillRow;
       };
     };
+    Enums: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
   };
 }
