@@ -1,17 +1,26 @@
 import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 export function ProfilePage() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState(true);
+
+  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ');
+  const initials = (user?.first_name?.[0] ?? '') + (user?.last_name?.[0] ?? '');
 
   return (
     <div style={styles.page}>
       <h1 style={styles.heading}>Профиль</h1>
 
       <div style={styles.card}>
-        <div style={styles.avatar}>А</div>
+        {user?.avatar_url ? (
+          <img src={user.avatar_url} style={styles.avatarImg} alt={fullName} />
+        ) : (
+          <div style={styles.avatar}>{initials || '?'}</div>
+        )}
         <div>
-          <p style={styles.name}>Алексей Петров</p>
-          <p style={styles.username}>@alex_p</p>
+          <p style={styles.name}>{fullName || '—'}</p>
+          {user?.username && <p style={styles.username}>@{user.username}</p>}
         </div>
       </div>
 
@@ -26,12 +35,8 @@ export function ProfilePage() {
           </button>
         </div>
         <div style={styles.row}>
-          <span style={styles.rowLabel}>💬 Язык</span>
-          <span style={styles.rowValue}>Русский</span>
-        </div>
-        <div style={styles.row}>
-          <span style={styles.rowLabel}>🌙 Тема</span>
-          <span style={styles.rowValue}>Авто</span>
+          <span style={styles.rowLabel}>🆔 Telegram ID</span>
+          <span style={styles.rowValue}>{user?.telegram_id ?? '—'}</span>
         </div>
       </div>
     </div>
@@ -43,6 +48,7 @@ const styles = {
   heading: { font: '700 22px/1.2 system-ui, sans-serif', color: 'var(--tg-theme-text-color)' } as React.CSSProperties,
   card: { display: 'flex', alignItems: 'center', gap: 'var(--space-md)', background: 'var(--tg-theme-secondary-bg-color)', borderRadius: 'var(--radius-card)', padding: 'var(--space-md)' } as React.CSSProperties,
   avatar: { width: 56, height: 56, borderRadius: '50%', background: 'var(--color-accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '600 24px system-ui', flexShrink: 0 } as React.CSSProperties,
+  avatarImg: { width: 56, height: 56, borderRadius: '50%', objectFit: 'cover' as const, flexShrink: 0 },
   name: { font: 'var(--font-title)', color: 'var(--tg-theme-text-color)' } as React.CSSProperties,
   username: { font: 'var(--font-caption)', color: 'var(--tg-theme-hint-color)' } as React.CSSProperties,
   section: { background: 'var(--tg-theme-secondary-bg-color)', borderRadius: 'var(--radius-card)', overflow: 'hidden' } as React.CSSProperties,
