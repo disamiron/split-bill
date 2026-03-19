@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import type { UserRow } from '@/lib/database.types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 export interface AuthState {
   user: UserRow | null;
@@ -33,7 +34,7 @@ export function useTelegramAuth(): AuthState {
         // Верифицируем через Edge Function и получаем JWT
         const res = await fetch(`${SUPABASE_URL}/functions/v1/telegram-auth`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
           body: JSON.stringify({ initData }),
         });
 
