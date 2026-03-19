@@ -1,5 +1,4 @@
 import type { Context } from 'grammy';
-import { InlineKeyboard } from 'grammy';
 import { supabase } from '../lib/supabase.js';
 
 const MINI_APP_URL = process.env.MINI_APP_URL ?? 'https://split-bill.vercel.app';
@@ -19,12 +18,9 @@ export async function handleBotAdded(ctx: Context) {
     return;
   }
 
-  const keyboard = new InlineKeyboard().webApp('💸 Открыть Split Bill', MINI_APP_URL);
-
   await ctx.reply(
     '👋 Привет! Я помогу вашей группе делить счета.\n\n' +
-    'Нажмите кнопку ниже, чтобы открыть приложение:',
-    { reply_markup: keyboard },
+    '💸 Чтобы открыть Split Bill — нажмите кнопку меню рядом с полем ввода.',
   );
 }
 
