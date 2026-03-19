@@ -7,6 +7,7 @@ import { CreateBillPage } from '@/pages/CreateBillPage';
 import { BillDetailsPage } from '@/pages/BillDetailsPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { BottomNav } from '@/components/BottomNav';
+import { useTelegramAuth } from '@/hooks/useTelegramAuth';
 
 import '@/styles/telegram-theme.css';
 
@@ -31,6 +32,25 @@ function useTelegramInit() {
 
 export function App() {
   useTelegramInit();
+  const { loading, error } = useTelegramAuth();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh' }}>
+        <span style={{ font: '400 15px system-ui', color: 'var(--tg-theme-hint-color)' }}>Загрузка...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', padding: 24 }}>
+        <span style={{ font: '400 15px system-ui', color: 'var(--color-danger)', textAlign: 'center' }}>
+          Ошибка авторизации: {error}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>
