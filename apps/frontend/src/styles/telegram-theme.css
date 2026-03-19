@@ -1,0 +1,72 @@
+/* Telegram Mini App theme variables
+ * Docs: https://core.telegram.org/bots/webapps#themeparams
+ *
+ * Палитра:
+ *   Синий акцент:     #2AABEE  (Telegram brand blue)
+ *   Зелёный успех:    #31C35F
+ *   Красный долг:     #E53935
+ *   Жёлтый ожидание: #F9A825
+ *
+ * Отступы (8px grid):
+ *   xs: 4px  |  sm: 8px  |  md: 16px  |  lg: 24px  |  xl: 32px
+ *
+ * Радиус скругления:
+ *   card: 12px  |  button: 10px  |  chip: 20px
+ *
+ * Типографика:
+ *   title: 17px/600  |  body: 15px/400  |  caption: 13px/400
+ */
+
+:root {
+  /* Fallback values (light theme) */
+  --tg-theme-bg-color: #efeff3;
+  --tg-theme-text-color: #000000;
+  --tg-theme-hint-color: #8e8e93;
+  --tg-theme-link-color: #2aabee;
+  --tg-theme-button-color: #2aabee;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #ffffff;
+
+  /* Custom tokens */
+  --color-success: #31c35f;
+  --color-danger: #e53935;
+  --color-warning: #f9a825;
+  --color-accent: #2aabee;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  --radius-card: 12px;
+  --radius-button: 10px;
+  --radius-chip: 20px;
+
+  --font-title: 600 17px/1.3 system-ui, -apple-system, sans-serif;
+  --font-body: 400 15px/1.4 system-ui, -apple-system, sans-serif;
+  --font-caption: 400 13px/1.3 system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font: var(--font-body);
+  color: var(--tg-theme-text-color);
+  background: var(--tg-theme-bg-color);
+  min-height: 100dvh;
+  overscroll-behavior: none;
+}
+
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}

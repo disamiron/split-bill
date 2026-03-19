@@ -1,0 +1,16 @@
+{
+  "name": "split-bill",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "pnpm --filter frontend dev",
+    "dev:bot": "pnpm --filter bot dev",
+    "build": "pnpm --filter frontend build",
+    "build:bot": "pnpm --filter bot build",
+    "lint": "pnpm --filter frontend lint"
+  },
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  }
+}
