@@ -34,7 +34,7 @@ export function useTelegramAuth(): AuthState {
         // Верифицируем через Edge Function и получаем JWT
         const res = await fetch(`${SUPABASE_URL}/functions/v1/telegram-auth`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
           body: JSON.stringify({ initData }),
         });
 
