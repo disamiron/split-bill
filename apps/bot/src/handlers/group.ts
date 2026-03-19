@@ -18,16 +18,19 @@ export async function handleBotAdded(ctx: Context) {
     return;
   }
 
+  // Устанавливаем кнопку меню для этой группы (появится рядом с полем ввода)
+  await ctx.api.setChatMenuButton({
+    chat_id: chat.id,
+    menu_button: {
+      type: 'web_app',
+      text: '💸 Split Bill',
+      web_app: { url: MINI_APP_URL },
+    },
+  });
+
   await ctx.reply(
     '👋 Привет! Я помогу вашей группе делить счета.\n\n' +
-    '💸 Нажмите кнопку ниже чтобы открыть Split Bill:',
-    {
-      reply_markup: {
-        keyboard: [[{ text: '💸 Открыть Split Bill', web_app: { url: MINI_APP_URL } }]],
-        resize_keyboard: true,
-        one_time_keyboard: false,
-      },
-    },
+    '💸 Нажмите кнопку Split Bill рядом с полем ввода, чтобы открыть приложение.',
   );
 }
 
