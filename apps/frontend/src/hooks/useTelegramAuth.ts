@@ -47,9 +47,14 @@ export function useTelegramAuth(): AuthState {
         // Устанавливаем JWT в Supabase клиент
         await supabase.auth.setSession({ access_token: token, refresh_token: token });
 
-        // Получаем chat_id если приложение открыто из группы
-        const chat = window.Telegram?.WebApp?.initDataUnsafe?.chat;
-        if (chat?.id) setTelegramChatId(chat.id);
+        // chat.id — если открыто прямо из группы
+        // start_param = "g{chatId}" — если открыто через deep link
+        const unsafe = window.Telegram?.WebApp?.initDataUnsafe;
+        const chatId = unsafe?.chat?.id
+          ?? (unsafe?.start_param?.startsWith('g')
+            ? parseInt(unsafe.start_param.slice(1), 10)
+            : null);
+        if (chatId) setTelegramChatId(chatId);
 
         setUser(dbUser);
       } catch (err) {

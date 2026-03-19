@@ -16,6 +16,7 @@ interface Window {
           type: string;
           title?: string;
         };
+        start_param?: string;
       };
       ready: () => void;
       expand: () => void;

@@ -1,9 +1,10 @@
 import type { Context } from 'grammy';
+import { InlineKeyboard } from 'grammy';
 import { supabase } from '../lib/supabase.js';
 
-const MINI_APP_URL = process.env.MINI_APP_URL ?? 'https://split-bill.vercel.app';
+const BOT_USERNAME = process.env.BOT_USERNAME ?? 'split_billy_bot';
 
-// Бот добавлен в группу или разгруппирован
+// Бот добавлен в группу
 export async function handleBotAdded(ctx: Context) {
   const chat = ctx.chat;
   if (!chat || chat.type === 'private') return;
@@ -18,19 +19,14 @@ export async function handleBotAdded(ctx: Context) {
     return;
   }
 
-  // Устанавливаем кнопку меню для этой группы (появится рядом с полем ввода)
-  await ctx.api.setChatMenuButton({
-    chat_id: chat.id,
-    menu_button: {
-      type: 'web_app',
-      text: '💸 Split Bill',
-      web_app: { url: MINI_APP_URL },
-    },
-  });
+  // Deep link: открывает личку с ботом и передаёт chat_id как start_param
+  const deepLink = `https://t.me/${BOT_USERNAME}?start=g${chat.id}`;
+  const keyboard = new InlineKeyboard().url('💸 Открыть Split Bill', deepLink);
 
   await ctx.reply(
     '👋 Привет! Я помогу вашей группе делить счета.\n\n' +
-    '💸 Нажмите кнопку Split Bill рядом с полем ввода, чтобы открыть приложение.',
+    'Нажмите кнопку ниже чтобы открыть приложение:',
+    { reply_markup: keyboard },
   );
 }
 
