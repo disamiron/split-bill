@@ -8,6 +8,7 @@ import { BillDetailsPage } from '@/pages/BillDetailsPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { BottomNav } from '@/components/BottomNav';
 import { useTelegramAuth } from '@/hooks/useTelegramAuth';
+import { AuthContext } from '@/context/AuthContext';
 
 import '@/styles/telegram-theme.css';
 
@@ -32,7 +33,7 @@ function useTelegramInit() {
 
 export function App() {
   useTelegramInit();
-  const { loading, error } = useTelegramAuth();
+  const { user, telegramChatId, loading, error } = useTelegramAuth();
 
   if (loading) {
     return (
@@ -53,6 +54,7 @@ export function App() {
   }
 
   return (
+    <AuthContext.Provider value={{ user, telegramChatId }}>
     <BrowserRouter>
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
         <main style={{ flex: 1, overflowY: 'auto' }}>
@@ -67,5 +69,6 @@ export function App() {
         <BottomNav />
       </div>
     </BrowserRouter>
+    </AuthContext.Provider>
   );
 }

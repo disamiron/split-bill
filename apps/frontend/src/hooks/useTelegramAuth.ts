@@ -6,12 +6,14 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
 export interface AuthState {
   user: UserRow | null;
+  telegramChatId: number | null;
   loading: boolean;
   error: string | null;
 }
 
 export function useTelegramAuth(): AuthState {
   const [user, setUser] = useState<UserRow | null>(null);
+  const [telegramChatId, setTelegramChatId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +47,10 @@ export function useTelegramAuth(): AuthState {
         // Устанавливаем JWT в Supabase клиент
         await supabase.auth.setSession({ access_token: token, refresh_token: token });
 
+        // Получаем chat_id если приложение открыто из группы
+        const chat = window.Telegram?.WebApp?.initDataUnsafe?.chat;
+        if (chat?.id) setTelegramChatId(chat.id);
+
         setUser(dbUser);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -56,5 +62,5 @@ export function useTelegramAuth(): AuthState {
     auth();
   }, []);
 
-  return { user, loading, error };
+  return { user, telegramChatId, loading, error };
 }

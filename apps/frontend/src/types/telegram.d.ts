@@ -11,6 +11,11 @@ interface Window {
           last_name?: string;
           photo_url?: string;
         };
+        chat?: {
+          id: number;
+          type: string;
+          title?: string;
+        };
       };
       ready: () => void;
       expand: () => void;
