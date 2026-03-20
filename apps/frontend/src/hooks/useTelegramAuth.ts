@@ -53,12 +53,16 @@ export function useTelegramAuth(): AuthState {
           throw new Error(err ?? 'Auth failed');
         }
 
-        const { token, user: dbUser } = await res.json() as { token: string; user: UserRow };
+        const { token, user: dbUser, telegramChatId: serverChatId } = await res.json() as {
+          token: string; user: UserRow; telegramChatId: number | null;
+        };
 
         // Создаём аутентифицированный клиент с кастомным JWT
         setAuthToken(token);
 
-        if (chatId) setTelegramChatId(chatId);
+        // Сервер извлекает chatId из верифицированного start_param — самый надёжный источник
+        const effectiveChatId = serverChatId ?? chatId;
+        if (effectiveChatId) setTelegramChatId(effectiveChatId);
 
         setUser(dbUser);
       } catch (err) {

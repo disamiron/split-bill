@@ -88,15 +88,25 @@ Deno.serve(async (req) => {
     });
     if (userErr) throw userErr;
 
-    // 4. Если пришёл telegramChatId — добавляем пользователя в group_members
-    if (telegramChatId) {
+    // 4. Определяем chatId из верифицированного start_param (надёжный источник)
+    //    или из переданного telegramChatId (клиентский fallback)
+    const startParam = params.start_param;
+    const chatIdFromParam = startParam?.startsWith('g')
+      ? parseInt(startParam.slice(1), 10)
+      : null;
+    const effectiveChatId = chatIdFromParam ?? telegramChatId ?? null;
+
+    // Добавляем пользователя в group_members
+    let groupId: string | null = null;
+    if (effectiveChatId) {
       const { data: group } = await supabase
         .from('groups')
         .select('id')
-        .eq('telegram_chat_id', telegramChatId)
+        .eq('telegram_chat_id', effectiveChatId)
         .single();
 
       if (group) {
+        groupId = group.id;
         await supabase
           .from('group_members')
           .upsert(
@@ -126,7 +136,7 @@ Deno.serve(async (req) => {
       key,
     );
 
-    return new Response(JSON.stringify({ token, user }), {
+    return new Response(JSON.stringify({ token, user, telegramChatId: effectiveChatId }), {
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     });
   } catch (err) {
