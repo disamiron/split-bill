@@ -4,7 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 import { useGroup } from '@/hooks/useGroup';
 import { useGroupMembers } from '@/hooks/useGroupMembers';
 import { useCreateBill } from '@/hooks/useCreateBill';
+import type { SplitType } from '@/lib/database.types';
 import type { UserRow } from '@/lib/database.types';
+
+const fmt = (n: number) =>
+  new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n);
 
 export function CreateBillPage() {
   const navigate = useNavigate();
@@ -15,13 +19,19 @@ export function CreateBillPage() {
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
+  const [splitType, setSplitType] = useState<SplitType>('equal');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [customShares, setCustomShares] = useState<Record<string, string>>({});
 
   const toggleMember = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+        setCustomShares((s) => { const n = { ...s }; delete n[id]; return n; });
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
@@ -29,31 +39,64 @@ export function CreateBillPage() {
   const selectAll = () => {
     if (selectedIds.size === members.length) {
       setSelectedIds(new Set());
+      setCustomShares({});
     } else {
       setSelectedIds(new Set(members.map((m) => m.id)));
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!group || selectedIds.size === 0) return;
-
-    const result = await createBill({
-      groupId: group.id,
-      title: title.trim(),
-      totalAmount: parseFloat(amount),
-      participantIds: [...selectedIds],
-    });
-
-    if (result) navigate('/');
+  const setShare = (id: string, value: string) => {
+    setCustomShares((prev) => ({ ...prev, [id]: value }));
   };
 
-  const perPerson = selectedIds.size > 0 && amount
+  // Total for custom mode = sum of individual shares
+  const customTotal = [...selectedIds].reduce((sum, id) => {
+    const val = parseFloat(customShares[id] || '0');
+    return sum + (isNaN(val) ? 0 : val);
+  }, 0);
+
+  const perPerson = splitType === 'equal' && selectedIds.size > 0 && amount
     ? parseFloat(amount) / selectedIds.size
     : 0;
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n);
+  const isFormValid = (() => {
+    if (!title.trim() || selectedIds.size === 0) return false;
+    if (splitType === 'equal') return !!amount && parseFloat(amount) > 0;
+    // custom: every selected participant must have a share > 0
+    return [...selectedIds].every((id) => {
+      const val = parseFloat(customShares[id] || '0');
+      return val > 0;
+    });
+  })();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!group || !isFormValid) return;
+
+    if (splitType === 'equal') {
+      const result = await createBill({
+        groupId: group.id,
+        title: title.trim(),
+        totalAmount: parseFloat(amount),
+        splitType: 'equal',
+        participantIds: [...selectedIds],
+      });
+      if (result) navigate('/');
+    } else {
+      const shares = [...selectedIds].map((id) => ({
+        user_id: id,
+        share: parseFloat(customShares[id] || '0'),
+      }));
+      const result = await createBill({
+        groupId: group.id,
+        title: title.trim(),
+        totalAmount: customTotal,
+        splitType: 'custom',
+        participantShares: shares,
+      });
+      if (result) navigate('/');
+    }
+  };
 
   if (!group) {
     return (
@@ -79,22 +122,45 @@ export function CreateBillPage() {
           />
         </label>
 
+        {/* Toggle: equal / custom */}
+        <div style={styles.toggleRow}>
+          <button
+            type="button"
+            style={{ ...styles.toggleBtn, ...(splitType === 'equal' ? styles.toggleActive : {}) }}
+            onClick={() => setSplitType('equal')}
+          >
+            Поровну
+          </button>
+          <button
+            type="button"
+            style={{ ...styles.toggleBtn, ...(splitType === 'custom' ? styles.toggleActive : {}) }}
+            onClick={() => setSplitType('custom')}
+          >
+            Разные доли
+          </button>
+        </div>
+
+        {/* Amount field */}
         <label style={styles.label}>
-          Сумма (₽)
+          {splitType === 'equal' ? 'Сумма (₽)' : 'Итого (₽)'}
           <input
-            style={styles.input}
+            style={{
+              ...styles.input,
+              ...(splitType === 'custom' ? styles.inputDisabled : {}),
+            }}
             type="number"
             inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            value={splitType === 'custom' ? (customTotal > 0 ? customTotal.toString() : '') : amount}
+            onChange={splitType === 'equal' ? (e) => setAmount(e.target.value) : undefined}
             placeholder="0"
             min="1"
             step="any"
-            required
+            disabled={splitType === 'custom'}
+            required={splitType === 'equal'}
           />
         </label>
 
-        {/* Участники */}
+        {/* Participants */}
         <div style={styles.section}>
           <div style={styles.sectionHeader}>
             <span style={styles.sectionTitle}>Разделить между</span>
@@ -116,17 +182,27 @@ export function CreateBillPage() {
                   selected={selectedIds.has(member.id)}
                   isYou={member.id === user?.id}
                   onToggle={() => toggleMember(member.id)}
+                  splitType={splitType}
+                  shareValue={customShares[member.id] ?? ''}
+                  onShareChange={(val) => setShare(member.id, val)}
                 />
               ))}
             </div>
           )}
         </div>
 
-        {/* Превью */}
-        {perPerson > 0 && (
+        {/* Preview */}
+        {splitType === 'equal' && perPerson > 0 && (
           <div style={styles.preview}>
             <span style={styles.previewLabel}>
               {fmt(perPerson)} на каждого ({selectedIds.size} чел.)
+            </span>
+          </div>
+        )}
+        {splitType === 'custom' && customTotal > 0 && (
+          <div style={styles.preview}>
+            <span style={styles.previewLabel}>
+              Итого: {fmt(customTotal)} ({selectedIds.size} чел.)
             </span>
           </div>
         )}
@@ -137,9 +213,9 @@ export function CreateBillPage() {
           type="submit"
           style={{
             ...styles.submit,
-            opacity: submitting || !title || !amount || selectedIds.size === 0 ? 0.5 : 1,
+            opacity: submitting || !isFormValid ? 0.5 : 1,
           }}
-          disabled={submitting || !title || !amount || selectedIds.size === 0}
+          disabled={submitting || !isFormValid}
         >
           {submitting ? 'Создаём...' : 'Создать счёт'}
         </button>
@@ -153,23 +229,44 @@ function MemberChip({
   selected,
   isYou,
   onToggle,
+  splitType,
+  shareValue,
+  onShareChange,
 }: {
   member: UserRow;
   selected: boolean;
   isYou: boolean;
   onToggle: () => void;
+  splitType: SplitType;
+  shareValue: string;
+  onShareChange: (val: string) => void;
 }) {
   const name = member.first_name + (isYou ? ' (ты)' : '');
   return (
-    <button type="button" onClick={onToggle} style={{ ...styles.chip, ...(selected ? styles.chipSelected : {}) }}>
-      <span style={styles.chipAvatar}>
-        {member.avatar_url
-          ? <img src={member.avatar_url} alt="" style={styles.avatarImg} />
-          : member.first_name[0]}
-      </span>
-      <span style={styles.chipName}>{name}</span>
-      <span style={styles.chipCheck}>{selected ? '✓' : ''}</span>
-    </button>
+    <div style={{ ...styles.chip, ...(selected ? styles.chipSelected : {}) }}>
+      <button type="button" onClick={onToggle} style={styles.chipButton}>
+        <span style={styles.chipAvatar}>
+          {member.avatar_url
+            ? <img src={member.avatar_url} alt="" style={styles.avatarImg} />
+            : member.first_name[0]}
+        </span>
+        <span style={styles.chipName}>{name}</span>
+        <span style={styles.chipCheck}>{selected ? '✓' : ''}</span>
+      </button>
+      {splitType === 'custom' && selected && (
+        <input
+          type="number"
+          inputMode="decimal"
+          style={styles.shareInput}
+          value={shareValue}
+          onChange={(e) => onShareChange(e.target.value)}
+          placeholder="0 ₽"
+          min="0"
+          step="any"
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
+    </div>
   );
 }
 
@@ -202,8 +299,37 @@ const styles = {
     color: 'var(--tg-theme-text-color)',
     outline: 'none',
   } as React.CSSProperties,
+  inputDisabled: {
+    opacity: 0.6,
+    cursor: 'default',
+  } as React.CSSProperties,
 
-  // Участники
+  // Toggle
+  toggleRow: {
+    display: 'flex', gap: 'var(--space-xs)',
+    background: 'var(--tg-theme-secondary-bg-color)',
+    borderRadius: 'var(--radius-button)',
+    padding: 3,
+  } as React.CSSProperties,
+  toggleBtn: {
+    flex: 1,
+    padding: '10px 0',
+    border: 'none',
+    borderRadius: 8,
+    background: 'transparent',
+    font: '500 14px/1 system-ui',
+    color: 'var(--tg-theme-hint-color)',
+    cursor: 'pointer',
+    transition: 'all .2s',
+  } as React.CSSProperties,
+  toggleActive: {
+    background: 'var(--tg-theme-bg-color)',
+    color: 'var(--color-accent)',
+    fontWeight: 600,
+    boxShadow: '0 1px 3px rgba(0,0,0,.08)',
+  } as React.CSSProperties,
+
+  // Participants
   section: {
     display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)',
   } as React.CSSProperties,
@@ -221,19 +347,24 @@ const styles = {
     display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)',
   } as React.CSSProperties,
 
-  // Chip участника
+  // Chip
   chip: {
-    display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
-    padding: '10px var(--space-md)',
+    display: 'flex', flexDirection: 'column',
     background: 'var(--tg-theme-secondary-bg-color)',
     border: '2px solid transparent',
     borderRadius: 'var(--radius-card)',
-    cursor: 'pointer',
     transition: 'border-color .15s',
+    overflow: 'hidden',
   } as React.CSSProperties,
   chipSelected: {
     borderColor: 'var(--color-accent)',
     background: 'rgba(42, 171, 238, 0.08)',
+  } as React.CSSProperties,
+  chipButton: {
+    display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
+    padding: '10px var(--space-md)',
+    background: 'none', border: 'none', cursor: 'pointer',
+    width: '100%',
   } as React.CSSProperties,
   chipAvatar: {
     width: 32, height: 32,
@@ -260,8 +391,19 @@ const styles = {
     color: 'var(--color-accent)',
     textAlign: 'center',
   } as React.CSSProperties,
+  shareInput: {
+    padding: '8px var(--space-md)',
+    margin: '0 var(--space-md) 10px',
+    background: 'var(--tg-theme-bg-color)',
+    border: '1px solid rgba(42, 171, 238, 0.3)',
+    borderRadius: 'var(--radius-button)',
+    font: '500 15px/1 system-ui',
+    color: 'var(--tg-theme-text-color)',
+    outline: 'none',
+    textAlign: 'right',
+  } as React.CSSProperties,
 
-  // Превью
+  // Preview
   preview: {
     padding: 'var(--space-sm) var(--space-md)',
     background: 'rgba(42, 171, 238, 0.08)',

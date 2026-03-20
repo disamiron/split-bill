@@ -104,7 +104,8 @@ export interface Database {
           p_currency: string;
           p_split_type: SplitType;
           p_receipt_image_url: string | null;
-          p_participant_ids: string[];
+          p_participant_ids?: string[];
+          p_participant_shares?: Array<{ user_id: string; share: number }>;
         };
         Returns: BillRow;
       };
