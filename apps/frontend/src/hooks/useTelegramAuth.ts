@@ -31,13 +31,15 @@ export function useTelegramAuth(): AuthState {
           return;
         }
 
-        // chat.id — если открыто прямо из группы
-        // start_param = "g{chatId}" — если открыто через deep link
+        // start_param = "g{chatId}" — через direct link (приоритет)
+        // chat.id — если открыто прямо из группы (только для групповых чатов)
         const unsafe = window.Telegram?.WebApp?.initDataUnsafe;
-        const chatId = unsafe?.chat?.id
-          ?? (unsafe?.start_param?.startsWith('g')
+        const chatType = unsafe?.chat?.type;
+        const isGroupChat = chatType === 'group' || chatType === 'supergroup';
+        const chatId = (unsafe?.start_param?.startsWith('g')
             ? parseInt(unsafe.start_param.slice(1), 10)
-            : null);
+            : null)
+          ?? (isGroupChat ? unsafe?.chat?.id ?? null : null);
 
         // Верифицируем через Edge Function и получаем JWT
         const res = await fetch(`${SUPABASE_URL}/functions/v1/telegram-auth`, {
