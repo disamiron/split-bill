@@ -2,7 +2,8 @@ import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 import { supabase } from '../lib/supabase.js';
 
-const MINI_APP_URL = process.env.MINI_APP_URL ?? 'https://split-bill.vercel.app';
+const BOT_USERNAME = process.env.BOT_USERNAME ?? 'split_billy_bot';
+const APP_SHORT_NAME = process.env.APP_SHORT_NAME ?? 'app';
 
 export async function handleStart(ctx: Context) {
   const user = ctx.from;
@@ -19,8 +20,10 @@ export async function handleStart(ctx: Context) {
   // Если пришли по deep link из группы: /start g-1001234567
   const startParam = ctx.match as string | undefined;
   if (startParam?.startsWith('g')) {
-    const url = `${MINI_APP_URL}?startapp=${startParam}`;
-    const keyboard = new InlineKeyboard().webApp('💸 Открыть Split Bill', url);
+    const keyboard = new InlineKeyboard().url(
+      '💸 Открыть Split Bill',
+      `https://t.me/${BOT_USERNAME}/${APP_SHORT_NAME}?startapp=${startParam}`,
+    );
     await ctx.reply(
       '💸 Нажмите кнопку чтобы открыть Split Bill для вашей группы:',
       { reply_markup: keyboard },
@@ -29,13 +32,16 @@ export async function handleStart(ctx: Context) {
   }
 
   // Обычный /start без параметра
-  const keyboard = new InlineKeyboard().webApp('💸 Открыть Split Bill', MINI_APP_URL);
+  const keyboard = new InlineKeyboard().url(
+    '💸 Открыть Split Bill',
+    `https://t.me/${BOT_USERNAME}/${APP_SHORT_NAME}`,
+  );
   await ctx.reply(
     `Привет, ${user.first_name}! 👋\n\n` +
     'Split Bill помогает делить счета в группах.\n\n' +
     '📌 Как начать:\n' +
     '1. Добавь меня в групповой чат\n' +
-    '2. Нажми кнопку в группе — откроется личка с кнопкой ниже\n' +
+    '2. Нажми кнопку в группе\n' +
     '3. Создавай счета и отслеживай кто сколько должен',
     { reply_markup: keyboard },
   );

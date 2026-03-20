@@ -2,8 +2,6 @@ import type { Context } from 'grammy';
 import { InlineKeyboard } from 'grammy';
 import { supabase } from '../lib/supabase.js';
 
-const BOT_USERNAME = process.env.BOT_USERNAME ?? 'split_billy_bot';
-
 // Бот добавлен в группу
 export async function handleBotAdded(ctx: Context) {
   const chat = ctx.chat;
@@ -19,9 +17,38 @@ export async function handleBotAdded(ctx: Context) {
     return;
   }
 
-  // Deep link: открывает личку с ботом и передаёт chat_id как start_param
-  const deepLink = `https://t.me/${BOT_USERNAME}?start=g${chat.id}`;
-  const keyboard = new InlineKeyboard().url('💸 Открыть Split Bill', deepLink);
+  // Регистрируем пользователя, который добавил бота
+  const addedBy = ctx.from;
+  if (addedBy && !addedBy.is_bot) {
+    const { data: group } = await supabase
+      .from('groups')
+      .select('id')
+      .eq('telegram_chat_id', chat.id)
+      .single();
+
+    if (group) {
+      const { data: user } = await supabase.rpc('upsert_telegram_user', {
+        p_telegram_id: addedBy.id,
+        p_username:    addedBy.username ?? null,
+        p_first_name:  addedBy.first_name,
+        p_last_name:   addedBy.last_name ?? null,
+      });
+
+      if (user) {
+        await supabase
+          .from('group_members')
+          .upsert({ group_id: group.id, user_id: user.id }, { onConflict: 'group_id,user_id' });
+      }
+    }
+  }
+
+  // Direct link открывает Mini App прямо из группы
+  const BOT_USERNAME = process.env.BOT_USERNAME ?? 'split_billy_bot';
+  const APP_SHORT_NAME = process.env.APP_SHORT_NAME ?? 'app';
+  const keyboard = new InlineKeyboard().url(
+    '💸 Открыть Split Bill',
+    `https://t.me/${BOT_USERNAME}/${APP_SHORT_NAME}?startapp=g${chat.id}`,
+  );
 
   await ctx.reply(
     '👋 Привет! Я помогу вашей группе делить счета.\n\n' +

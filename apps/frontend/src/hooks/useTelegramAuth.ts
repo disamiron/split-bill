@@ -31,11 +31,19 @@ export function useTelegramAuth(): AuthState {
           return;
         }
 
+        // chat.id — если открыто прямо из группы
+        // start_param = "g{chatId}" — если открыто через deep link
+        const unsafe = window.Telegram?.WebApp?.initDataUnsafe;
+        const chatId = unsafe?.chat?.id
+          ?? (unsafe?.start_param?.startsWith('g')
+            ? parseInt(unsafe.start_param.slice(1), 10)
+            : null);
+
         // Верифицируем через Edge Function и получаем JWT
         const res = await fetch(`${SUPABASE_URL}/functions/v1/telegram-auth`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-          body: JSON.stringify({ initData }),
+          body: JSON.stringify({ initData, telegramChatId: chatId }),
         });
 
         if (!res.ok) {
@@ -48,13 +56,6 @@ export function useTelegramAuth(): AuthState {
         // Создаём аутентифицированный клиент с кастомным JWT
         setAuthToken(token);
 
-        // chat.id — если открыто прямо из группы
-        // start_param = "g{chatId}" — если открыто через deep link
-        const unsafe = window.Telegram?.WebApp?.initDataUnsafe;
-        const chatId = unsafe?.chat?.id
-          ?? (unsafe?.start_param?.startsWith('g')
-            ? parseInt(unsafe.start_param.slice(1), 10)
-            : null);
         if (chatId) setTelegramChatId(chatId);
 
         setUser(dbUser);

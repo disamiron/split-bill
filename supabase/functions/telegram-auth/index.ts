@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { initData } = await req.json() as { initData: string };
+    const { initData, telegramChatId } = await req.json() as { initData: string; telegramChatId?: number };
     if (!initData) return new Response(JSON.stringify({ error: 'initData required' }), { status: 400 });
 
     // 1. Верифицируем подпись Telegram
@@ -88,7 +88,25 @@ Deno.serve(async (req) => {
     });
     if (userErr) throw userErr;
 
-    // 4. Генерируем JWT с telegram_id в claims (для RLS)
+    // 4. Если пришёл telegramChatId — добавляем пользователя в group_members
+    if (telegramChatId) {
+      const { data: group } = await supabase
+        .from('groups')
+        .select('id')
+        .eq('telegram_chat_id', telegramChatId)
+        .single();
+
+      if (group) {
+        await supabase
+          .from('group_members')
+          .upsert(
+            { group_id: group.id, user_id: user.id },
+            { onConflict: 'group_id,user_id' },
+          );
+      }
+    }
+
+    // 5. Генерируем JWT с telegram_id в claims (для RLS)
     const key = await crypto.subtle.importKey(
       'raw',
       new TextEncoder().encode(JWT_SECRET),
