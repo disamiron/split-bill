@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getAuthedClient } from '@/lib/supabase';
 import type { Database } from '@/lib/database.types';
 
 type BillRow = Database['public']['Tables']['bills']['Row'];
@@ -35,7 +35,7 @@ export function useBills(groupId: string) {
       setLoading(true);
       setError(null);
 
-      const { data, error: err } = await supabase
+      const { data, error: err } = await getAuthedClient()
         .from('bills')
         .select(`
           *,
@@ -58,13 +58,13 @@ export function useBills(groupId: string) {
 
     fetchBills();
 
-    const channel = supabase
+    const channel = getAuthedClient()
       .channel(`bills:${groupId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bills', filter: `group_id=eq.${groupId}` }, fetchBills)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bill_participants' }, fetchBills)
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { getAuthedClient().removeChannel(channel); };
   }, [groupId]);
 
   return { bills, loading, error };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, setAuthToken } from '@/lib/supabase';
 import type { UserRow } from '@/lib/database.types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -45,8 +45,8 @@ export function useTelegramAuth(): AuthState {
 
         const { token, user: dbUser } = await res.json() as { token: string; user: UserRow };
 
-        // Устанавливаем JWT в Supabase клиент
-        await supabase.auth.setSession({ access_token: token, refresh_token: token });
+        // Создаём аутентифицированный клиент с кастомным JWT
+        setAuthToken(token);
 
         // chat.id — если открыто прямо из группы
         // start_param = "g{chatId}" — если открыто через deep link

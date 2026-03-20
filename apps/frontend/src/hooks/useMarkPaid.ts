@@ -1,6 +1,6 @@
 // @ts-nocheck — supabase-js 2.99 types require generated schema; replace with `supabase gen types` later
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getAuthedClient } from '@/lib/supabase';
 
 export function useMarkPaid() {
   const [loading, setLoading] = useState(false);
@@ -10,7 +10,7 @@ export function useMarkPaid() {
     setLoading(true);
     setError(null);
 
-    const { error: err } = await supabase
+    const { error: err } = await getAuthedClient()
       .from('bill_participants')
       .update({ is_paid: true, paid_at: new Date().toISOString() })
       .eq('bill_id', billId)

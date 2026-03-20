@@ -1,6 +1,6 @@
 // @ts-nocheck — supabase-js 2.99 types require generated schema; replace with `supabase gen types` later
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getAuthedClient } from '@/lib/supabase';
 import type { SplitType } from '@/lib/database.types';
 
 interface CreateBillParams {
@@ -21,7 +21,7 @@ export function useCreateBill() {
     setLoading(true);
     setError(null);
 
-    const { data, error: err } = await supabase.rpc('create_bill', {
+    const { data, error: err } = await getAuthedClient().rpc('create_bill', {
       p_group_id:          params.groupId,
       p_title:             params.title,
       p_total_amount:      params.totalAmount,

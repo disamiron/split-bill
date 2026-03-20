@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getAuthedClient } from '@/lib/supabase';
 import type { GroupRow } from '@/lib/database.types';
 
 export function useGroup(telegramChatId: number | null) {
@@ -12,7 +12,7 @@ export function useGroup(telegramChatId: number | null) {
       return;
     }
 
-    supabase
+    getAuthedClient()
       .from('groups')
       .select('*')
       .eq('telegram_chat_id', telegramChatId)
