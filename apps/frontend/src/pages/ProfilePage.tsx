@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 
 export function ProfilePage() {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState(true);
+  const [notifications] = useState(false);
 
   const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ');
   const initials = (user?.first_name?.[0] ?? '') + (user?.last_name?.[0] ?? '');
@@ -28,10 +28,10 @@ export function ProfilePage() {
         <div style={styles.row}>
           <span style={styles.rowLabel}>🔔 Уведомления</span>
           <button
-            onClick={() => setNotifications((v) => !v)}
-            style={{ ...styles.toggle, background: notifications ? 'var(--color-success)' : 'var(--tg-theme-hint-color)' }}
+            disabled
+            style={{ ...styles.toggle, background: 'var(--tg-theme-hint-color)', opacity: 0.5, cursor: 'not-allowed' }}
           >
-            <span style={{ ...styles.toggleKnob, transform: notifications ? 'translateX(20px)' : 'none' }} />
+            <span style={{ ...styles.toggleKnob, transform: 'none' }} />
           </button>
         </div>
         <div style={styles.row}>

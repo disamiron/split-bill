@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useGroup } from '@/hooks/useGroup';
@@ -5,6 +6,14 @@ import { useBills } from '@/hooks/useBills';
 import { SplitBillCard } from '@/components/SplitBillCard';
 import type { Bill } from '@/types';
 import type { BillWithParticipants } from '@/hooks/useBills';
+
+type Filter = 'all' | 'pending' | 'settled';
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: 'all', label: 'Все' },
+  { key: 'pending', label: 'В процессе' },
+  { key: 'settled', label: 'Оплачены' },
+];
 
 function mapToBill(b: BillWithParticipants): Bill {
   return {
@@ -39,6 +48,7 @@ export function BillsListPage() {
   const { user, telegramChatId } = useAuth();
   const { group, loading: groupLoading } = useGroup(telegramChatId);
   const { bills, loading: billsLoading } = useBills(group?.id ?? '');
+  const [filter, setFilter] = useState<Filter>('all');
 
   const loading = groupLoading || billsLoading;
 
@@ -46,6 +56,13 @@ export function BillsListPage() {
     .flatMap((b) => b.bill_participants)
     .filter((p) => p.user.id === user?.id && !p.is_paid)
     .reduce((sum, p) => sum + p.share, 0);
+
+  const filteredBills = bills.filter((b) => {
+    if (filter === 'all') return true;
+    const allPaid = b.bill_participants.every((p) => p.is_paid);
+    const isSettled = b.status === 'settled' || allPaid;
+    return filter === 'settled' ? isSettled : !isSettled;
+  });
 
   if (loading) {
     return (
@@ -69,18 +86,37 @@ export function BillsListPage() {
         <h1 style={styles.heading}>{group.title}</h1>
         {totalOwed > 0 && (
           <div style={styles.owedBanner}>
-            Ты должен: <strong>{fmt(totalOwed)}</strong>
+            К оплате: <strong>{fmt(totalOwed)}</strong>
           </div>
         )}
       </header>
 
-      {bills.length === 0 ? (
+      {/* Filter tabs */}
+      <div style={styles.filterRow}>
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            style={{
+              ...styles.filterTab,
+              background: filter === f.key ? 'var(--color-accent)' : 'var(--tg-theme-secondary-bg-color)',
+              color: filter === f.key ? '#fff' : 'var(--tg-theme-hint-color)',
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredBills.length === 0 ? (
         <div style={styles.center}>
-          <span style={styles.hint}>Счетов пока нет. Создай первый! 👆</span>
+          <span style={styles.hint}>
+            {bills.length === 0 ? 'Счетов пока нет. Создай первый!' : 'Нет счетов с таким статусом'}
+          </span>
         </div>
       ) : (
         <div style={styles.list}>
-          {bills.map((bill) => (
+          {filteredBills.map((bill) => (
             <SplitBillCard
               key={bill.id}
               bill={mapToBill(bill)}
@@ -99,12 +135,14 @@ export function BillsListPage() {
 }
 
 const styles = {
-  page: { padding: 'var(--space-md)', paddingBottom: 80, display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' } as React.CSSProperties,
+  page: { padding: 'var(--space-md)', paddingBottom: 140, display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' } as React.CSSProperties,
   center: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60dvh' } as React.CSSProperties,
-  header: { marginBottom: 'var(--space-sm)' } as React.CSSProperties,
+  header: { marginBottom: 'var(--space-xs)' } as React.CSSProperties,
   heading: { font: '700 22px/1.2 system-ui, sans-serif', color: 'var(--tg-theme-text-color)', marginBottom: 'var(--space-xs)' } as React.CSSProperties,
   owedBanner: { padding: 'var(--space-sm) var(--space-md)', background: '#fff3f3', borderRadius: 'var(--radius-card)', color: 'var(--color-danger)', font: 'var(--font-body)' } as React.CSSProperties,
+  filterRow: { display: 'flex', gap: 'var(--space-xs)', marginBottom: 'var(--space-xs)' } as React.CSSProperties,
+  filterTab: { flex: 1, padding: '8px 0', border: 'none', borderRadius: 'var(--radius-chip)', font: '600 13px/1 system-ui', cursor: 'pointer', transition: 'all 0.2s' } as React.CSSProperties,
   list: { display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' } as React.CSSProperties,
   hint: { font: 'var(--font-body)', color: 'var(--tg-theme-hint-color)', textAlign: 'center' as const },
-  fab: { position: 'fixed', bottom: 70, left: '50%', transform: 'translateX(-50%)', background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: 'var(--radius-chip)', padding: '12px 28px', font: '600 15px/1 system-ui', cursor: 'pointer', boxShadow: '0 4px 16px rgba(42,171,238,.4)' } as React.CSSProperties,
+  fab: { position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)', background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: 'var(--radius-chip)', padding: '12px 28px', font: '600 15px/1 system-ui', cursor: 'pointer', boxShadow: '0 4px 16px rgba(42,171,238,.4)', zIndex: 10 } as React.CSSProperties,
 } satisfies Record<string, React.CSSProperties>;

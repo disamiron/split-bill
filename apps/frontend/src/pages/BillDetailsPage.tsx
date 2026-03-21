@@ -132,9 +132,13 @@ export function BillDetailsPage() {
             const isMe = p.user.id === user?.id;
             return (
               <div key={p.id} style={styles.row}>
-                <div style={styles.avatar}>
-                  {p.user.first_name[0]}
-                </div>
+                {p.user.avatar_url ? (
+                  <img src={p.user.avatar_url} alt={p.user.first_name} style={styles.avatarImg} />
+                ) : (
+                  <div style={styles.avatar}>
+                    {p.user.first_name[0]}
+                  </div>
+                )}
                 <div style={styles.nameCol}>
                   <span style={styles.name}>
                     {p.user.first_name}
@@ -304,6 +308,12 @@ const styles = {
     background: 'var(--color-accent)', color: '#fff',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     font: '600 15px system-ui',
+    flexShrink: 0,
+  } as React.CSSProperties,
+  avatarImg: {
+    width: 36, height: 36,
+    borderRadius: '50%',
+    objectFit: 'cover' as const,
     flexShrink: 0,
   } as React.CSSProperties,
   nameCol: {

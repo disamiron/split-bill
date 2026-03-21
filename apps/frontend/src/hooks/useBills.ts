@@ -9,6 +9,7 @@ export interface BillWithParticipants extends BillRow {
     id: string;
     first_name: string;
     username: string | null;
+    avatar_url: string | null;
   };
   bill_participants: Array<{
     id: string;
@@ -19,6 +20,7 @@ export interface BillWithParticipants extends BillRow {
       id: string;
       first_name: string;
       username: string | null;
+      avatar_url: string | null;
     };
   }>;
 }
@@ -39,10 +41,10 @@ export function useBills(groupId: string) {
         .from('bills')
         .select(`
           *,
-          paid_by_user:users!bills_paid_by_fkey(id, first_name, username),
+          paid_by_user:users!bills_paid_by_fkey(id, first_name, username, avatar_url),
           bill_participants(
             id, share, is_paid, paid_at,
-            user:users(id, first_name, username)
+            user:users(id, first_name, username, avatar_url)
           )
         `)
         .eq('group_id', groupId)
