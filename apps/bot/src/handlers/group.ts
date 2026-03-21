@@ -63,19 +63,6 @@ export async function handleBotAdded(ctx: Context) {
     { reply_markup: miniAppKeyboard(chat.id) },
   );
 
-  // Рекомендация дать права админа (отдельным сообщением)
-  setTimeout(async () => {
-    try {
-      await ctx.reply(
-        '💡 Совет: дайте боту права админа — тогда я смогу автоматически ' +
-        'отслеживать кто вошёл и вышел из группы.\n\n' +
-        'Без прав админа всё тоже работает — просто каждому нужно будет ' +
-        'открыть приложение самостоятельно.',
-      );
-    } catch (err) {
-      console.error('Failed to send admin hint:', err);
-    }
-  }, 3000);
 }
 
 // Новый участник вступил в группу — регистрируем и приветствуем
@@ -93,45 +80,47 @@ export async function handleNewMember(ctx: Context) {
 
   if (!group) return;
 
-  const registeredNames: string[] = [];
+  // Регистрируем новых участников в БД (но НЕ в group_members —
+  // туда они попадут когда откроют мини-апп)
+  let hasNewHumans = false;
 
   for (const member of newMembers) {
     if (member.is_bot) continue;
+    hasNewHumans = true;
 
     // Upsert пользователя
-    const { data: user, error: userErr } = await supabase.rpc('upsert_telegram_user', {
+    const { error: userErr } = await supabase.rpc('upsert_telegram_user', {
       p_telegram_id: member.id,
       p_username:    member.username ?? null,
       p_first_name:  member.first_name,
       p_last_name:   member.last_name ?? null,
     });
 
-    if (userErr || !user) {
-      console.error('Failed to upsert user:', userErr?.message);
-      continue;
+    if (userErr) {
+      console.error('Failed to upsert user:', userErr.message);
     }
-
-    // Добавляем в группу
-    await supabase
-      .from('group_members')
-      .upsert({ group_id: group.id, user_id: user.id }, { onConflict: 'group_id,user_id' });
-
-    registeredNames.push(member.first_name);
   }
 
-  // Приветствуем новых участников — им нужно знать про приложение
-  if (registeredNames.length === 1) {
-    await ctx.reply(
-      `👋 ${registeredNames[0]}, добро пожаловать!\n` +
-      'Открой приложение, чтобы участвовать в разделении счетов:',
-      { reply_markup: miniAppKeyboard(chat.id) },
-    );
-  } else if (registeredNames.length > 1) {
-    await ctx.reply(
-      `👋 ${registeredNames.join(', ')} — добро пожаловать!\n` +
-      'Откройте приложение, чтобы участвовать в разделении счетов:',
-      { reply_markup: miniAppKeyboard(chat.id) },
-    );
+  // Показываем счётчик регистраций
+  if (hasNewHumans) {
+    const { count: registeredCount } = await supabase
+      .from('group_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('group_id', group.id);
+
+    const totalMembers = await ctx.api.getChatMemberCount(chat.id) - 1; // минус бот
+    const registered = registeredCount ?? 0;
+
+    if (registered >= totalMembers) {
+      await ctx.reply(
+        `✅ Все ${registered} участников в Split Bill!`,
+      );
+    } else {
+      await ctx.reply(
+        `📊 Зарегистрированы ${registered} из ${totalMembers} участников в Split Bill.`,
+        { reply_markup: miniAppKeyboard(chat.id) },
+      );
+    }
   }
 }
 

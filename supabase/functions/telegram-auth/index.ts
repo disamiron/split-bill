@@ -51,6 +51,50 @@ async function verifyTelegramInitData(initData: string): Promise<Record<string, 
   return Object.fromEntries(params.entries());
 }
 
+// Уведомляет группу о регистрации нового участника в мини-аппе
+async function notifyGroupAboutRegistration(
+  telegramChatId: number,
+  groupId: string,
+  firstName: string,
+  supabase: ReturnType<typeof createClient>,
+) {
+  try {
+    // Считаем зарегистрированных участников
+    const { count: registeredCount } = await supabase
+      .from('group_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('group_id', groupId);
+
+    // Получаем общее число участников группы через Telegram Bot API
+    const countRes = await fetch(
+      `https://api.telegram.org/bot${BOT_TOKEN}/getChatMemberCount?chat_id=${telegramChatId}`,
+    );
+    const countData = await countRes.json() as { ok: boolean; result?: number };
+    // Вычитаем бота из общего числа
+    const totalMembers = countData.ok && countData.result ? countData.result - 1 : null;
+
+    const registered = registeredCount ?? 0;
+
+    let text: string;
+    if (totalMembers && registered >= totalMembers) {
+      text = `✅ ${firstName} в Split Bill! Все ${registered} участников зарегистрированы — можно создавать счёт!`;
+    } else if (totalMembers) {
+      text = `✅ ${firstName} в Split Bill! Зарегистрированы ${registered} из ${totalMembers} участников.`;
+    } else {
+      text = `✅ ${firstName} зарегистрирован(а) в Split Bill!`;
+    }
+
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: telegramChatId, text }),
+    });
+  } catch (err) {
+    // Не блокируем авторизацию из-за ошибки уведомления
+    console.error('Failed to notify group about registration:', err);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -107,12 +151,31 @@ Deno.serve(async (req) => {
 
       if (group) {
         groupId = group.id;
+
+        // Проверяем, новый ли это участник
+        const { data: existing } = await supabase
+          .from('group_members')
+          .select('user_id')
+          .eq('group_id', group.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
         await supabase
           .from('group_members')
           .upsert(
             { group_id: group.id, user_id: user.id },
             { onConflict: 'group_id,user_id' },
           );
+
+        // Уведомляем группу о новой регистрации
+        if (!existing) {
+          await notifyGroupAboutRegistration(
+            effectiveChatId,
+            group.id,
+            tgUser.first_name,
+            supabase,
+          );
+        }
       }
     }
 
