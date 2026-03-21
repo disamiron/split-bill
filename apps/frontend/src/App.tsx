@@ -73,18 +73,14 @@ export function App() {
   return (
     <AuthContext.Provider value={{ user, telegramChatId }}>
     <BrowserRouter>
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
-        <main style={{ flex: 1, overflowY: 'auto' }}>
-          <Routes>
-            <Route path="/" element={<BillsListPage />} />
-            <Route path="/create" element={<CreateBillPage />} />
-            <Route path="/bill/:id" element={<BillDetailsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-        <BottomNav />
-      </div>
+      <Routes>
+        <Route path="/" element={<BillsListPage />} />
+        <Route path="/create" element={<CreateBillPage />} />
+        <Route path="/bill/:id" element={<BillDetailsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <BottomNav />
     </BrowserRouter>
     </AuthContext.Provider>
   );

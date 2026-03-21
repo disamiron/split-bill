@@ -44,7 +44,7 @@ export function ProfilePage() {
 }
 
 const styles = {
-  page: { padding: 'var(--space-md)', display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' } as React.CSSProperties,
+  page: { padding: 'var(--space-md)', paddingBottom: 80, display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' } as React.CSSProperties,
   heading: { font: '700 22px/1.2 system-ui, sans-serif', color: 'var(--tg-theme-text-color)' } as React.CSSProperties,
   card: { display: 'flex', alignItems: 'center', gap: 'var(--space-md)', background: 'var(--tg-theme-secondary-bg-color)', borderRadius: 'var(--radius-card)', padding: 'var(--space-md)' } as React.CSSProperties,
   avatar: { width: 56, height: 56, borderRadius: '50%', background: 'var(--color-accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '600 24px system-ui', flexShrink: 0 } as React.CSSProperties,

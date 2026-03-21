@@ -63,7 +63,7 @@ export function BottomNav() {
 }
 
 const styles = {
-  nav: { display: 'flex', background: 'var(--tg-theme-secondary-bg-color)', borderTop: '0.5px solid rgba(0,0,0,.08)', paddingBottom: 'env(safe-area-inset-bottom)' } as React.CSSProperties,
+  nav: { position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50, display: 'flex', background: 'var(--tg-theme-secondary-bg-color)', borderTop: '0.5px solid rgba(0,0,0,.08)', paddingBottom: 'env(safe-area-inset-bottom)' } as React.CSSProperties,
   tab: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '8px 0 10px', border: 'none', background: 'none', cursor: 'pointer' } as React.CSSProperties,
   label: { font: 'var(--font-caption)' } as React.CSSProperties,
 } satisfies Record<string, React.CSSProperties>;
